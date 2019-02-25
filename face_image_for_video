@@ -1,0 +1,85 @@
+
+import cv2 as cv
+import sys
+
+def CatchPICFromVideo(window_name, camera_idx, catch_pic_num, path_name):
+    cv.namedWindow(window_name)
+    video_full_path = "data/Why we have an emotional connection to robots  Kate Darling.mp4"
+    # 视频来源，可以来自一段已存好的视频，也可以直接来自USB摄像头
+    cap = cv.VideoCapture(video_full_path)
+
+    # 告诉OpenCV使用人脸识别分类器
+    classfier = cv.CascadeClassifier("E:/python-3.6.6-64-bit/opencv-master/data/haarcascades/haarcascade_frontalface_alt_tree.xml")
+
+    # 识别出人脸后要画的边框的颜色，RGB格式
+    color = (0, 0, 255)
+
+    num = 0
+    while cap.isOpened():
+        ref, frame = cap.read()  # 读取一帧数据
+        if not ref:
+            break
+
+        # 加入该段代码将使拍出来的画面呈现镜像效果
+        # 第二个参数为视频是否上下颠倒 0为上下颠倒 1为不进行上下颠倒
+        #frame = cv.flip(frame, 1)
+        grey = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)  # 将当前桢图像转换成灰度图像
+        # 人脸检测，1.3和3分别为图片缩放比例和需要检测的有效点数
+        faces = classfier.detectMultiScale(grey, scaleFactor=1.2, minNeighbors=3, minSize=(32, 32))
+
+        #限定头像尺寸
+        h_1 = 120
+        w_1 = 120
+
+        if len(faces) == 1:  # 大于0则检测到人脸
+            for faceRect in faces:  # 单独框出每一张人脸
+                x, y, w, h = faceRect
+                if abs(w_1 - w) > 20 and abs(h_1 - h) > 20:
+                    font = cv.FONT_HERSHEY_SIMPLEX  # 字体类型 1：字号，4：线形
+                    cv.putText(frame, 'Adjust Distance', (30, 30), font, 0.5, (0, 0, 255), 2)
+                    break
+                w_1 = w
+                h_1 = h
+                # 将当前帧保存为图片
+                img_name = '%s/%d.jpg ' %(path_name, num)
+                image = frame[y: y + h, x: x + w]
+                cv.imwrite(img_name, image)
+
+                num += 1
+                if num > (catch_pic_num):  # 如果超过指定最大保存数量退出循环
+                    break
+
+                # 画出矩形框
+                cv.rectangle(frame, (x, y), (x + w, y + h), color, 1)
+
+                # 显示当前捕捉到了多少人脸图片了，这样站在那里被拍摄时心里有个数，不用两眼一抹黑傻等着
+                font = cv.FONT_HERSHEY_SIMPLEX #字体类型 1：字号，4：线形
+                cv.putText(frame, 'num:%d' % (num), (30, 30), font, 0.5, (0, 0, 255) ,2)
+
+                # 超过指定最大保存数量结束程序
+        elif len(faces) == 0:
+            font = cv.FONT_HERSHEY_SIMPLEX  # 字体类型 0.1：字号，4：线形
+            cv.putText(frame, 'Please 1 person appears in the middle of the image', (30, 30), font, 0.5, (0, 0, 255), 2)
+        else:
+            font = cv.FONT_HERSHEY_SIMPLEX  # 字体类型 1：字号，4：线形
+            cv.putText(frame, 'Please another %d person leave'% (len(faces) - 1), (30, 30), font, 0.5, (0, 0, 255), 2)
+        if num > catch_pic_num:
+            break
+        # 显示图像
+        cv.imshow(window_name, frame)
+        # 设置视频刷新频率，单位为毫秒
+        # 返回值为键盘按键的值
+        c = cv.waitKey(10)
+        # 27为 Esc 按键的返回值
+        if c == 27:
+            break
+
+            # 释放摄像头并销毁所有窗口
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+
+if __name__ == '__main__':
+    if len(sys.argv) != 1:
+        print("Usage:%s camera_id face_num_max path_name\r\n" % (sys.argv[0]))
+    else:
+        CatchPICFromVideo("face_image_requirement", 0, 1000, 'D:\pythonworkplace\Face_ID\data\KateDarling')
